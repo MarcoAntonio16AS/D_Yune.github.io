@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RPG Character App - Versão Completa</title>
+    <style>
+        :root { --bg: #121212; --card: #1e1e1e; --accent: #00e676; --text: #eeeeee; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, sans-serif; padding: 10px; margin: 0; transition: background 0.3s ease; }
+        
+        .app-container { max-width: 850px; margin: auto; background: var(--card); border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); }
+        
+        /* Customização */
+        .config-bar { padding: 12px; background: rgba(0,0,0,0.4); display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; border-bottom: 1px solid #333; justify-content: center; }
+        .btn-upload { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 5px; cursor: pointer; border: 1px dashed var(--accent); flex-grow: 1; text-align: center; color: var(--text); }
+
+        /* Banner e Foto */
+        .header-banner { height: 180px; background: #333; position: relative; background-size: cover; background-position: center; }
+        .photo-slot { width: 110px; height: 146px; border: 3px solid var(--accent); position: absolute; bottom: -50px; left: 25px; background: #222; background-size: cover; background-position: center; z-index: 5; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+
+        /* Abas */
+        .tabs { display: flex; background: #000; margin-top: 60px; overflow-x: auto; scrollbar-width: none; }
+        .tab-btn { flex: 1; padding: 16px; border: none; background: none; color: white; cursor: pointer; font-size: 11px; font-weight: bold; opacity: 0.5; white-space: nowrap; transition: 0.3s; }
+        .tab-btn.active { opacity: 1; border-bottom: 3px solid var(--accent); color: var(--accent); }
+        
+        .content { padding: 25px; display: none; min-height: 450px; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .content.active { display: block; }
+        
+        /* Inputs e Stats */
+        .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 25px; }
+        .field-box { display: flex; flex-direction: column; gap: 5px; }
+        .field-box label { font-size: 10px; font-weight: bold; color: var(--accent); text-transform: uppercase; opacity: 0.8; }
+        input, textarea { background: rgba(0,0,0,0.25); border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; }
+        input:focus { border-color: var(--accent); outline: none; }
+        
+        /* Atributos */
+        .attr-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border-left: 4px solid var(--accent); }
+        .dots { color: var(--accent); font-size: 1.4em; letter-spacing: 2px; }
+        .multiplier { color: var(--accent); font-weight: bold; font-family: 'Courier New', monospace; font-size: 1.2em; min-width: 70px; text-align: right; }
+        
+        .btn-plus { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--accent); color: #000; font-weight: bold; cursor: pointer; margin-left: 8px; transition: 0.2s; }
+        .btn-plus:active { transform: scale(0.9); opacity: 0.8; }
+
+        #editor { min-height: 350px; background: #fff; color: #222; padding: 20px; border-radius: 8px; outline: none; line-height: 1.6; }
+        
+        .footer-btns { padding: 20px; display: flex; gap: 10px; }
+        .btn-action { flex: 1; padding: 14px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; }
+
+        @media print { .no-print { display: none !important; } .content { display: block !important; margin-bottom: 50px; } body { background: white; color: black; } .app-container { box-shadow: none; border: none; } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="config-bar no-print">
+        <label class="btn-upload">🖼️ Banner da Galeria <input type="file" accept="image/*" style="display:none" onchange="upImg(this, 'banner')"></label>
+        <label class="btn-upload">👤 Foto 3x4 <input type="file" accept="image/*" style="display:none" onchange="upImg(this, 'photo')"></label>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <label>Fundo:</label> <input type="color" id="c-bg" value="#121212" onchange="applyUI()">
+            <label>Destaque:</label> <input type="color" id="c-ac" value="#00e676" onchange="applyUI()">
+        </div>
+    </div>
+
+    <div class="header-banner" id="v-banner">
+        <div class="photo-slot" id="v-photo">FOTO 3x4</div>
+    </div>
+
+    <div class="tabs no-print">
+        <button class="tab-btn active" onclick="op(0)">FICHA</button>
+        <button class="tab-btn" onclick="op(1)">HABILIDADES</button>
+        <button class="tab-btn" onclick="op(2)">HISTÓRIA</button>
+        <button class="tab-btn" onclick="op(3)">EQUIP/NOTAS</button>
+    </div>
+
+    <div class="content active" id="t0">
+        <div class="input-grid">
+            <div class="field-box"><label>Nome</label><input type="text" id="f-nome" class="as"></div>
+            <div class="field-box"><label>Sobrenome</label><input type="text" id="f-sobre" class="as"></div>
+            <div class="field-box"><label>Gênero</label><input type="text" id="f-gen" class="as"></div>
+            <div class="field-box"><label>Idade</label><input type="number" id="f-idade" class="as"></div>
+            <div class="field-box"><label>Aniversário</label><input type="text" id="f-niver" class="as"></div>
+            <div class="field-box"><label>Grau</label><input type="text" id="f-grau" class="as"></div>
+            <div class="field-box"><label>Classe</label><input type="text" id="f-classe" class="as"></div>
+            <div class="field-box"><label>Inata</label><input type="text" id="f-inata" class="as"></div>
+        </div>
+
+        <h3 style="border-bottom: 2px solid var(--accent); padding-bottom: 5px; margin-top: 30px;">Atributos (Total: <span id="pts-total">0</span>)</h3>
+        <div id="stats-area"></div>
+
+        <div style="margin-top:25px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: var(--accent);">PONTOS DE VIDA (HP)</strong>
+            <div>
+                <input type="number" id="hp1" class="as" style="width:70px; text-align:center" placeholder="Atual">
+                <span style="font-size: 1.5em; margin: 0 5px;">/</span>
+                <input type="number" id="hp2" class="as" style="width:70px; text-align:center" placeholder="Máx">
+            </div>
+        </div>
+    </div>
+
+    <div class="content" id="t1">
+        <button class="btn-action no-print" onclick="newSk()" style="background:var(--accent); color:#000; margin-bottom: 20px;">+ Criar Campo de Habilidade</button>
+        <div id="sk-list"></div>
+    </div>
+
+    <div class="content" id="t2">
+        <div style="margin-bottom: 15px; display: flex; gap: 5px;" class="no-print">
+            <button onclick="document.execCommand('bold')" class="btn-plus" style="border-radius:5px">B</button>
+            <button onclick="document.execCommand('italic')" class="btn-plus" style="border-radius:5px">I</button>
+            <button onclick="document.execCommand('underline')" class="btn-plus" style="border-radius:5px">U</button>
+        </div>
+        <div id="ed-hist" contenteditable="true" class="as" style="min-height: 350px; background: #fff; color: #222; padding: 20px; border-radius: 8px;">Escreva aqui a história...</div>
+    </div>
+
+    <div class="content" id="t3">
+        <textarea id="f-notas" class="as" style="height:400px" placeholder="Anotações, Inventário, Itens..."></textarea>
+    </div>
+
+    <div class="footer-btns no-print">
+        <button class="btn-action" onclick="window.print()" style="background:#444; color:white">💾 Gerar PDF / Salvar</button>
+        <button class="btn-action" onclick="resetFicha()" style="background:#ff4444; color:white">⚠️ Resetar Tudo</button>
+    </div>
+</div>
+
+<script>
+    const statNames = ['Força', 'Resistência', 'Velocidade', 'Inteligência', 'Poder'];
+    let values = JSON.parse(localStorage.getItem('rpg_stats')) || [0,0,0,0,0];
+
+    // --- CORES E TEMA ---
+    function applyUI() {
+        const bg = document.getElementById('c-bg').value;
+        const ac = document.getElementById('c-ac').value;
+        document.documentElement.style.setProperty('--bg', bg);
+        document.documentElement.style.setProperty('--accent', ac);
+        localStorage.setItem('theme_bg', bg);
+        localStorage.setItem('theme_ac', ac);
+    }
+
+    // --- IMAGENS DA GALERIA ---
+    function upImg(input, type) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            localStorage.setItem('img_'+type, e.target.result);
+            renderImg(type, e.target.result);
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function renderImg(type, data) {
+        const el = document.getElementById(type === 'banner' ? 'v-banner' : 'v-photo');
+        el.style.backgroundImage = `url(${data})`;
+        if(type === 'photo') el.innerText = '';
+    }
+
+    // --- ATRIBUTOS (PONTOS x 50) ---
+    function renderStats() {
+        const container = document.getElementById('stats-area');
+        container.innerHTML = '';
+        let totalPts = 0;
+        statNames.forEach((n, i) => {
+            const v = values[i];
+            totalPts += v;
+            const ptsX50 = v * 50;
+            const dots = '●'.repeat(Math.min(v, 5)) + '○'.repeat(Math.max(0, 5-v));
+            const overflow = v > 5 ? ` [+${v-5}]` : ` [+0]`;
+            
+            container.innerHTML += `
+                <div class="attr-row">
+                    <span style="font-weight:bold; width: 100px;">${n}</span>
+                    <div style="display: flex; align-items: center; flex-grow: 1; justify-content: flex-end; gap: 10px;">
+                        <span class="dots">${dots}</span>
+                        <span style="opacity:0.6; font-size: 12px; min-width: 40px;">${overflow}</span>
+                        <span class="multiplier"> = ${ptsX50}</span>
+                        <button class="btn-plus no-print" onclick="chStat(${i}, 1)">+</button>
+                        <button class="btn-plus no-print" onclick="chStat(${i}, -1)">-</button>
+                    </div>
+                </div>`;
+        });
+        document.getElementById('pts-total').innerText = totalPts;
+        localStorage.setItem('rpg_stats', JSON.stringify(values));
+    }
+
+    function chStat(i, d) { values[i] = Math.max(0, values[i]+d); renderStats(); }
+
+    // --- NAVEGAÇÃO ---
+    function op(i) {
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('t'+i).classList.add('active');
+        document.querySelectorAll('.tab-btn')[i].classList.add('active');
+    }
+
+    // --- HABILIDADES DINÂMICAS ---
+    function newSk() {
+        const div = document.createElement('div');
+        div.className = 'attr-row';
+        div.style.flexDirection = 'column';
+        div.style.alignItems = 'flex-start';
+        div.innerHTML = `
+            <input type="text" placeholder="Título da Habilidade" style="margin-bottom: 8px; font-weight:bold; border-bottom: 1px solid var(--accent);">
+            <textarea placeholder="Descreva o efeito aqui..."></textarea>
+            <button onclick="this.parentElement.remove()" class="no-print" style="color:red; background:none; border:none; cursor:pointer; font-size:10px; align-self:flex-end; margin-top:5px;">[X] EXCLUIR</button>
+        `;
+        document.getElementById('sk-list').appendChild(div);
+    }
+
+    // --- AUTO-SAVE (LOCALSTORAGE) ---
+    document.querySelectorAll('.as').forEach(el => {
+        const id = el.id;
+        if(localStorage.getItem('save_'+id)) {
+            el[el.tagName === 'DIV' ? 'innerHTML' : 'value'] = localStorage.getItem('save_'+id);
+        }
+        el.addEventListener('input', () => {
+            localStorage.setItem('save_'+id, el[el.tagName === 'DIV' ? 'innerHTML' : 'value']);
+        });
+    });
+
+    // --- CARGA INICIAL ---
+    if(localStorage.getItem('theme_bg')) { document.getElementById('c-bg').value = localStorage.getItem('theme_bg'); }
+    if(localStorage.getItem('theme_ac')) { document.getElementById('c-ac').value = localStorage.getItem('theme_ac'); }
+    if(localStorage.getItem('img_banner')) applyImage('banner', localStorage.getItem('img_banner')); // Corrigido para carregar
+    if(localStorage.getItem('img_photo')) applyImage('photo', localStorage.getItem('img_photo'));
+
+    function applyImage(t, d) { renderImg(t, d); }
+
+    function resetFicha() { if(confirm("Isso apagará permanentemente todos os dados. Continuar?")) { localStorage.clear(); location.reload(); } }
+
+    renderStats();
+    applyUI();
+</script>
+
+</body>
+</html>
